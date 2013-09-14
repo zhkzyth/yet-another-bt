@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <signal.h>
+
 #include "signal_hander.h"
 #include "parse_metafile.h"
 #include "data.h"
@@ -15,6 +16,7 @@ extern int  *fds;
 extern int  fds_len;
 extern Peer *peer_head;
 
+//可重入？？
 void do_clear_work()
 {
 	// 关闭所有peer的socket

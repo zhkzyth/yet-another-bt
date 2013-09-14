@@ -1,17 +1,10 @@
 #include <stdio.h>
 #include <string.h>
-
-#if __APPLE__
-#include <sys/malloc.h>
-#else 
-#include <malloc.h>
-#endif
-
+#include <stdlib.h>
 #include <errno.h>
 #include <ctype.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <stdlib.h>
 #include <time.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -19,12 +12,13 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+
 #include "parse_metafile.h"
 #include "peer.h"
 #include "tracker.h"
 
 extern unsigned char  info_hash[20];
-extern unsigned char  peer_id[20];
+extern unsigned char  peer_id[21];
 extern Announce_list  *announce_list_head;
 
 extern int                 *sock;
@@ -213,21 +207,25 @@ int prepare_connect_tracker(int *max_sockfd)
 		}
 
 		get_tracker_name(p,tracker_name,128);
-		get_tracker_port(p,&tracker_port);
-		
+        get_tracker_port(p,&tracker_port);
+
 		// 从主机名获取IP地址
-		ht = gethostbyname(tracker_name);
-		if(ht == NULL) {
-			printf("gethostbyname failed:%s\n",hstrerror(h_errno)); 
-			valid[i] = 0;
-		} else {
-			memset(&tracker[i], 0, sizeof(struct sockaddr_in));
-			memcpy(&tracker[i].sin_addr.s_addr, ht->h_addr_list[0], 4);
-			tracker[i].sin_port = htons(tracker_port);
-			tracker[i].sin_family = AF_INET;
-			valid[i] = -1;
-		}
-		
+        // TODO add proxy 
+        ht = gethostbyname(tracker_name);
+        /*while(1){}*/
+        /*printf("%s",ht->h_name);*/
+
+        if(ht == NULL) {
+            printf("gethostbyname failed:%s\n",hstrerror(h_errno)); 
+            valid[i] = 0;
+        } else {
+            memset(&tracker[i], 0, sizeof(struct sockaddr_in));
+            memcpy(&tracker[i].sin_addr.s_addr, ht->h_addr_list[0], 4);
+            tracker[i].sin_port = htons(tracker_port);
+            tracker[i].sin_family = AF_INET;
+            valid[i] = -1;
+        }
+        
 		p = p->next;
 	}
 

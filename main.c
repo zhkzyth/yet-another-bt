@@ -3,12 +3,6 @@
 #include <unistd.h>
 #include <string.h>
 
-#if __APPLE__
-#include <sys/malloc.h>
-#else 
-#include <malloc.h>
-#endif
-
 #include "data.h"
 #include "tracker.h"
 #include "bitfield.h"
@@ -18,7 +12,7 @@
 #include "policy.h"
 #include "log.h"
 
-#define  DEBUG
+/*#define  DEBUG*/
 
 int main(int argc, char *argv[])
 {
@@ -37,26 +31,36 @@ int main(int argc, char *argv[])
 	ret = parse_metafile(argv[1]);
 	if(ret != 0)  { printf("%s:%d error\n",__FILE__,__LINE__); return -1; }
 
+    printf("after parse files\n");
 	// 初始化非阻塞peer
 	init_unchoke_peers();
 
+    printf("after peers files\n");
 	// 创建用于保存下载数据的文件
 	ret = create_files();
 	if(ret != 0)  { printf("%s:%d error\n",__FILE__,__LINE__); return -1; }
+    printf("after create files\n");
 
 	// 创建位图
-	ret = create_bitfield();
-	if(ret != 0)  { printf("%s:%d error\n",__FILE__,__LINE__); return -1; }
+    ret = create_bitfield();
+    if(ret != 0)  { printf("%s:%d error\n",__FILE__,__LINE__); return -1; }
 
-	// 创建缓冲区
-	ret = create_btcache();
-	if(ret != 0)  { printf("%s:%d error\n",__FILE__,__LINE__); return -1; }
+    printf("after create bitfield\n");
 
-	// 负责与所有Peer收发数据、交换消息
-	download_upload_with_peers();
 
-	// 做一些清理工作,主要是释放动态分配的内存
-	do_clear_work();
+	/*// 创建缓冲区*/
+    ret = create_btcache();
+    if(ret != 0)  { printf("%s:%d error\n",__FILE__,__LINE__); return -1; }
+
+    printf("after create btcache\n");
+
+	/*// 负责与所有Peer收发数据、交换消息*/
+    download_upload_with_peers();
+
+    printf("after download_upload_with_peers\n");
+
+	/*// 做一些清理工作,主要是释放动态分配的内存*/
+    do_clear_work();
 
 	return 0;
 }

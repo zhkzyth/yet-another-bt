@@ -1,19 +1,20 @@
 #include <stdio.h>
 #include <ctype.h>
-
-#if __APPLE__
-#include <sys/malloc.h>
-#else 
-#include <malloc.h>
-#endif
-
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "parse_metafile.h"
-#include "sha1.h"
 
-char  *metafile_content = NULL; // 保存种子文件的内容
+#if defined(__APPLE__)
+# define COMMON_DIGEST_FOR_OPENSSL
+# include <CommonCrypto/CommonDigest.h>
+# define SHA1 CC_SHA1
+#else
+# include <openssl/sha.h>
+#endif
+
+#include "parse_metafile.h"
+
+unsigned char  *metafile_content = NULL; // 保存种子文件的内容
 long  filesize;                 // 种子文件的长度
 
 int       piece_length  = 0;    // 每个piece的长度,通常为256KB即262144字节
@@ -41,7 +42,7 @@ int read_metafile(char *metafile_name)
 		printf("%s:%d can not open file\n",__FILE__,__LINE__);
 		return -1;
 	}
-	
+
 	// 获取种子文件的长度
 	fseek(fp,0,SEEK_END);
 	filesize = ftell(fp);
@@ -187,11 +188,12 @@ int is_multi_files()
 
 	if( find_keyword("5:files",&i) == 1 ) {
     
+		multi_file = 1;
+        
         #ifdef DEBUG
             printf("is_multi_files:%d\n",multi_file);
         #endif
 
-		multi_file = 1;
 		return 1;
 	}
 
@@ -214,7 +216,7 @@ int get_piece_length()
 	}
 
 #ifdef DEBUG
-	printf("piece length:%d\n",piece_length);
+	printf("per piece length:%d\n",piece_length);
 #endif
 
 	return 0;
@@ -240,6 +242,8 @@ int get_pieces() //拿到全部分片的hash值
 
 #ifdef DEBUG
 	printf("get_pieces ok\n");
+	printf("pieces_hash_buffer_length is %d\n",pieces_length);
+    /*printf("pieces_hash_content is %s\n",pieces);*/
 #endif
 
 	return 0;
@@ -362,58 +366,65 @@ int get_files_length_path()
 
 int get_info_hash()
 {
-	int   push_pop = 0;
-	long  i, begin, end;
+    int   push_pop = 0;
+    long  i, begin, end;
 
-	if(metafile_content == NULL)  return -1;
+    if(metafile_content == NULL)  return -1;
 
-	if( find_keyword("4:info",&i) == 1 ) {
-		begin = i+6;  // begin是关键字"4:info"对应值的起始下标
-	} else {
-		return -1;
-	}
+    if( find_keyword("4:info",&i) == 1 ) {
+        begin = i+6;  // begin是关键字"4:info"对应值的起始下标
+    } else {
+        return -1;
+    }
 
-	i = i + 6;        // skip "4:info"
-	for(; i < filesize; ) //check the whole file
-		if(metafile_content[i] == 'd') { 
-			push_pop++;
-			i++;
-		} else if(metafile_content[i] == 'l') {
-			push_pop++;
-			i++;
-		} else if(metafile_content[i] == 'i') {
-			i++;  // skip i
-			if(i == filesize)  return -1;
-			while(metafile_content[i] != 'e') {
-				if((i+1) == filesize)  return -1;
-				else i++;
-			}
-			i++;  // skip e
-		} else if((metafile_content[i] >= '0') && (metafile_content[i] <= '9')) {
-			int number = 0;
-			while((metafile_content[i] >= '0') && (metafile_content[i] <= '9')) {
-				number = number * 10 + metafile_content[i] - '0';
-				i++;
-			}
-			i++;  // skip :
-			i = i + number;
-		} else if(metafile_content[i] == 'e') {
-			push_pop--;
-			if(push_pop == 0) { end = i; break; }
-			else  i++; 
-		} else {
-			return -1;
-		}
-	if(i == filesize)  return -1;
+    i = i + 6;        // skip "4:info"
+    for(; i < filesize; ) //check the whole file
+        if(metafile_content[i] == 'd') { 
+            push_pop++;
+            i++;
+        } else if(metafile_content[i] == 'l') {
+            push_pop++;
+            i++;
+        } else if(metafile_content[i] == 'i') {
+            i++;  // skip i
+            if(i == filesize)  return -1;
+            while(metafile_content[i] != 'e') {
+                if((i+1) == filesize)  return -1;
+                else i++;
+            }
+            i++;  // skip e
+        } else if((metafile_content[i] >= '0') && (metafile_content[i] <= '9')) {
+            int number = 0;
+            while((metafile_content[i] >= '0') && (metafile_content[i] <= '9')) {
+                number = number * 10 + metafile_content[i] - '0';
+                i++;
+            }
+            i++;  // skip :
+            i = i + number;
+        } else if(metafile_content[i] == 'e') {
+            push_pop--;
+            if(push_pop == 0) { end = i; break; }
+            else  i++; 
+        } else {
+            return -1;
+        }
+    if(i == filesize)  return -1;
 
-	SHA1_CTX context;
-	SHA1Init(&context);
-	SHA1Update(&context, &metafile_content[begin], end-begin+1);
-	SHA1Final(info_hash, &context);
+
+    SHA_CTX context;
+    SHA1_Init(&context);
+
+    printf("in hash info :%d\n",multi_file);
+    SHA1_Update(&context,&metafile_content[begin], end-begin+1);
+    
+    printf("in hash info :%d\n",multi_file);
+    SHA1_Final(info_hash, &context);
+
+    printf("in hash info :%d\n",multi_file);
 
 #ifdef DEBUG
-	printf("info_hash:");
-	for(i = 0; i < 20; i++)  
+    printf("info_hash:");
+    for(i = 0; i < 20; i++)  
     {
         printf("%.2x ",info_hash[i]);   
     }
@@ -422,7 +433,6 @@ int get_info_hash()
 
 #endif
 
-    printf("test hash position:");
 	return 0;
 }
 
@@ -432,14 +442,13 @@ int get_peer_id()
 	// 设置产生随机数的种子
     srand(time(NULL));
 	// 生成随机数,并把其中12位赋给peer_id,peer_id前8位固定为-TT1000-
-    sprintf(peer_id,"-TT1000-%12d",rand());
+    sprintf((char *)peer_id,"-TT1000-%12d",rand());
 
-    printf("the peer id is %s\n",peer_id);
 #ifdef DEBUG
-	/*int i;*/
-	/*printf("peer_id:");*/
-	/*for(i = 0; i < 20; i++)  printf("%c",peer_id[i]);*/
-	/*printf("\n");*/
+    int i;
+    printf("peer_id:");
+    for(i = 0; i < 20; i++)  printf("%c",peer_id[i]);
+    printf("\n");
 #endif
 
 	return 0;
@@ -503,14 +512,13 @@ int parse_metafile(char *metafile)
 	ret = get_file_length();
 	if(ret < 0) { printf("%s:%d wrong",__FILE__,__LINE__); return -1; }
 
-    /*printf("before\n");*/
 	// 获得info_hash，生成peer_id
     ret = get_info_hash();
 	if(ret < 0) { printf("%s:%d wrong",__FILE__,__LINE__); return -1; }
-    /*printf("after");*/
+    
+    printf("in parse_metafile end multi_file:%d\n",multi_file);
     ret = get_peer_id();
 	if(ret < 0) { printf("%s:%d wrong",__FILE__,__LINE__); return -1; }
-    printf("after\n");
-    return -1;
-	return 0;
+
+    return 0;
 }

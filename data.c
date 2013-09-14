@@ -6,14 +6,17 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#if __APPLE__
-#include <sys/malloc.h>
-#else 
-#include <malloc.h>
+
+#if defined(__APPLE__)
+# define COMMON_DIGEST_FOR_OPENSSL
+# include <CommonCrypto/CommonDigest.h>
+# define SHA1 CC_SHA1
+#else
+# include <openssl/sha.h>
 #endif
 
+
 #include "data.h"
-#include "sha1.h"
 #include "parse_metafile.h"
 #include "bitfield.h"
 #include "message.h"
@@ -34,7 +37,7 @@
 // 以下变量定义在parse_metafile.c文件
 extern  char   *file_name;
 extern  Files  *files_head;
-extern  int     file_length;
+extern  long long file_length;
 extern  int     piece_length;
 extern  int     pieces_length;
 extern  char   *pieces;
@@ -42,6 +45,9 @@ extern  char   *pieces;
 extern  Bitmap *bitmap;
 extern  int     download_piece_num;
 extern  Peer   *peer_head;
+
+//tmp hack segment fault
+extern int multi_file;
 
 // 指向一个16MB大小的缓冲区
 Btcache *btcache_head = NULL;
@@ -176,7 +182,8 @@ int get_files_count()
 {
 	int count = 0;
 	
-	if(is_multi_files() == 0)  return 1;
+    printf("in get_files_count multi_file:%d\n",multi_file);
+    if( multi_file == 0 )  return 1;
 
 	Files *p = files_head;
 	while(p != NULL) {
@@ -193,7 +200,9 @@ int create_files()
 {
 	int  ret, i;
 	char buff[1] = { 0x0 };
-	
+
+    printf("in create_file multi_file:%d\n",multi_file);
+
 	fds_len = get_files_count();
 	if(fds_len < 0)  return -1;
 	
@@ -201,7 +210,7 @@ int create_files()
 	if(fds == NULL)  return -1;
 	
 	
-	if( is_multi_files() == 0 ) {  // 待下载的为单文件
+	if( multi_file == 0 ) {  // 待下载的为单文件
 
 		*fds = open(file_name,O_RDWR|O_CREAT,0777);
 		if(*fds < 0)  { printf("%s:%d error",__FILE__,__LINE__); return -1; }
@@ -256,7 +265,8 @@ int write_btcache_node_to_harddisk(Btcache *node)
 	// piece_length为每个piece长度，它被定义在parse_metafile.c中
 	line_position = node->index * piece_length + node->begin;
 
-	if( is_multi_files() == 0 ) {  // 如果下载的是单个文件
+	/*if( is_multi_files() == 0 ) {  // 如果下载的是单个文件*/
+    if(  multi_file  == 0 ) {  // 如果下载的是单个文件
 		lseek(*fds,line_position,SEEK_SET);
 		write(*fds,node->buff,node->length);
 		return 0;
@@ -331,7 +341,8 @@ int read_slice_from_harddisk(Btcache *node)
 	// 计算线性偏移量
 	line_position = node->index * piece_length + node->begin;
 	
-	if( is_multi_files() == 0 ) {  // 如果下载的是单个文件
+	/*if( is_multi_files() == 0 ) {  // 如果下载的是单个文件*/
+    if( multi_file == 0 ) {  // 如果下载的是单个文件
 		lseek(*fds,line_position,SEEK_SET);
 		read(*fds,node->buff,node->length);
 		return 0;
@@ -428,14 +439,14 @@ int write_piece_to_harddisk(int sequnce,Peer *peer)
 	p = node_ptr;  // p指向piece的第一个slice所在的btcache结点
 
 	// 校验piece的HASH值
-	SHA1_CTX ctx;
-	SHA1Init(&ctx);
+	SHA_CTX ctx;
+	SHA1_Init(&ctx);
 	while(slice_count>0 && node_ptr!=NULL) {
-		SHA1Update(&ctx,node_ptr->buff,16*1024);
+		SHA1_Update(&ctx,node_ptr->buff,16*1024);
 		slice_count--;
 		node_ptr = node_ptr->next;
 	}
-	SHA1Final(piece_hash1,&ctx);
+	SHA1_Final(piece_hash1,&ctx);
 	
 	index = p->index * 20;
 	index_copy = p->index;  // 存放piece的index
@@ -812,7 +823,7 @@ int read_slice_for_send(int index,int begin,int length,Peer *peer)
 		if(p->index==index && p->begin==begin && p->length==length &&
 		   p->in_use==1 && p->is_full==1) {
 			// 构造piece消息
-			ret = create_piece_msg(index,begin,p->buff,p->length,peer);
+			ret = create_piece_msg(index,begin,(char *)p->buff,p->length,peer);
 			if(ret < 0) { printf("Function create piece msg error\n"); return -1; }
 			p->access_count = 1;
 			return 0;
@@ -843,7 +854,7 @@ int read_slice_for_send(int index,int begin,int length,Peer *peer)
 				if(p->index==index && p->begin==begin && p->length==length &&
 					p->in_use==1 && p->is_full==1) {
 					// 构造piece消息
-					ret = create_piece_msg(index,begin,p->buff,p->length,peer);
+					ret = create_piece_msg(index,begin,(char *)p->buff,p->length,peer);
 					if(ret < 0) { printf("Function create piece msg error\n"); return -1; }
 					p->access_count = 1;
 					return 0;
@@ -867,7 +878,7 @@ int read_slice_for_send(int index,int begin,int length,Peer *peer)
 	p->length = length;
 	read_slice_from_harddisk(p);
 	// 构造piece消息
-	ret = create_piece_msg(index,begin,p->buff,p->length,peer);
+	ret = create_piece_msg(index,begin,(char *)p->buff,p->length,peer);
 	if(ret < 0) { printf("Function create piece msg error\n"); return -1; }
 	// 释放刚刚申请的内存
 	if(p->buff != NULL)  free(p->buff);
@@ -917,13 +928,13 @@ int write_last_piece_to_btcache(Peer *peer)
 	Btcache        *p = last_piece;
 
 	// 校验piece的HASH值
-	SHA1_CTX ctx;
-	SHA1Init(&ctx);
+	SHA_CTX ctx;
+	SHA1_Init(&ctx);
 	while(p != NULL) {
-		SHA1Update(&ctx,p->buff,p->length);
+		SHA1_Update(&ctx,p->buff,p->length);
 		p = p->next;
 	}
-	SHA1Final(piece_hash1,&ctx);
+	SHA1_Final(piece_hash1,&ctx);
 	
 	for(i = 0; i < 20; i++)  piece_hash2[i] = pieces[index*20+i];
 
@@ -1059,7 +1070,7 @@ int read_slice_for_send_last_piece(int index,int begin,int length,Peer *peer)
 	}
 	
 	if(p->in_use == 1 && p->is_full == 1) {
-		ret = create_piece_msg(index,begin,p->buff,p->length,peer);
+		ret = create_piece_msg(index,begin,(char *)p->buff,p->length,peer);
 	}
 
 	if(ret == 0)  return 0;

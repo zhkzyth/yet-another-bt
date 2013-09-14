@@ -12,6 +12,7 @@
 #include <sys/select.h>
 #include <netdb.h>
 #include <errno.h>
+
 #include "torrent.h"
 #include "message.h"
 #include "tracker.h"
@@ -237,7 +238,7 @@ int download_upload_with_peers()
 				} else {
 					int completed, ok_len;
 					p->buff_len += ret;
-					completed = is_complete_message(p->in_buff,p->buff_len,&ok_len);
+					completed = is_complete_message((unsigned char *)p->in_buff,p->buff_len,&ok_len);
 					if (completed == 1)  parse_response(p);
 					else if(p->buff_len >= threshold) {
 						parse_response_uncomplete_msg(p,ok_len);

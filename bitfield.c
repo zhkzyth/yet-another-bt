@@ -1,62 +1,76 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
-
-#if __APPLE__
-#include <sys/malloc.h>
-#else 
-#include <malloc.h>
-#endif
-
+#include <stdlib.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+
 #include "parse_metafile.h"
 #include "bitfield.h"
 
-extern int  pieces_length;
-extern char *file_name;
-
 Bitmap      *bitmap = NULL;         // 指向位图
 int         download_piece_num = 0; // 当前已下载的piece数 
+
+void show_shared_vars()
+{
+
+    printf("pieces_length %d\n",pieces_length);
+    printf("valid_length %d\n",bitmap->valid_length);
+    printf("bitfield_length %d\n",bitmap->bitfield_length);
+    printf("filename is %s\n",file_name);
+    printf("file-length is %lld\n",file_length);
+    printf("is multi_file %d\n",multi_file);
+
+}
 
 // 如果存在一个位图文件,则读位图文件并把获取的内容保存到bitmap
 // 如此一来,就可以实现断点续传,即上次下载的内容不至于丢失
 int create_bitfield()
 {
-	bitmap = (Bitmap *)malloc(sizeof(Bitmap));
-	if(bitmap == NULL) { 
-		printf("allocate memory for bitmap fiailed\n"); 
-		return -1;
-	}
 
-	// pieces_length除以20即为总的piece数
-	bitmap->valid_length = pieces_length / 20;
-	bitmap->bitfield_length = pieces_length / 20 / 8;
-	if( (pieces_length/20) % 8 != 0 )  bitmap->bitfield_length++;
+    printf("0\n");
+    bitmap = (Bitmap *)malloc(sizeof(Bitmap));
+    if(bitmap == NULL) { 
+        printf("allocate memory for bitmap fiailed\n"); 
+        return -1;
+    }
 
-	bitmap->bitfield = (unsigned char *)malloc(bitmap->bitfield_length);
-	if(bitmap->bitfield == NULL)  { 
-		printf("allocate memory for bitmap->bitfield fiailed\n"); 
-		if(bitmap != NULL)  free(bitmap);
-		return -1;
-	}
+    printf("1\n");
+	/*// pieces_length除以20即为总的piece数*/
+    bitmap->valid_length = pieces_length / 20;
+    bitmap->bitfield_length = pieces_length / 20 / 8;
+    if( (pieces_length/20) % 8 != 0 )  bitmap->bitfield_length++;
 
-	char bitmapfile[64];
-	sprintf(bitmapfile,"%dbitmap",pieces_length);
+    printf("2\n");
+    show_shared_vars();
+
+    bitmap->bitfield = (unsigned char *)malloc(bitmap->bitfield_length);
+    if(bitmap->bitfield == NULL)  { 
+        printf("allocate memory for bitmap->bitfield fiailed\n"); 
+        if(bitmap != NULL)  free(bitmap);
+        return -1;
+    }
+
+    printf("3\n");
+    //FIXME hack?
+    printf("creating bitmapfile\n");
+    char bitmapfile[128];
+    sprintf(bitmapfile,"%d_bitmap",pieces_length); //sprintf is fuck!!!!!
+    printf("%s\n",bitmapfile);
 	
-	int  i;
-	FILE *fp = fopen(bitmapfile,"rb");
-	if(fp == NULL) {  // 若打开文件失败,说明开始的是一个全新的下载
-		memset(bitmap->bitfield, 0, bitmap->bitfield_length);
-	} else {
-		fseek(fp,0,SEEK_SET);
-		for(i = 0; i < bitmap->bitfield_length; i++)
-			(bitmap->bitfield)[i] = fgetc(fp);
-		fclose(fp); 
-		// 给download_piece_num赋新的初值
-		download_piece_num = get_download_piece_num();
-	}
+    int  i;
+    FILE *fp = fopen(bitmapfile,"rb");
+    if(fp == NULL) {  // 若打开文件失败,说明开始的是一个全新的下载
+        memset(bitmap->bitfield, 0, bitmap->bitfield_length);
+    } else {
+        fseek(fp,0,SEEK_SET);
+        for(i = 0; i < bitmap->bitfield_length; i++)
+            (bitmap->bitfield)[i] = fgetc(fp);
+        fclose(fp); 
+        // 给download_piece_num赋新的初值
+        download_piece_num = get_download_piece_num();
+    }
 	
 	return 0;
 }
@@ -92,7 +106,7 @@ int set_bit_value(Bitmap *bitmap,int index,unsigned char v)
 	byte_index = index / 8;
 	inner_byte_index = index % 8;
 
-	v = v << (7 - inner_byte_index);
+	v = v << (7 - inner_byte_index); 
 	bitmap->bitfield[byte_index] = bitmap->bitfield[byte_index] | v;
 
 	return 0;
@@ -123,6 +137,7 @@ int print_bitfield(Bitmap *bitmap)
 	int i;
 
 	for(i = 0; i < bitmap->bitfield_length; i++) {
+        //BUG!
 		printf("%.2X ",bitmap->bitfield[i]);
 		if( (i+1) % 16 == 0)  printf("\n");
 	}
@@ -134,11 +149,11 @@ int print_bitfield(Bitmap *bitmap)
 int restore_bitmap()
 {
 	int  fd;
-	char bitmapfile[64];
+	char bitmapfile[128];
 	
 	if( (bitmap == NULL) || (file_name == NULL) )  return -1;
 	
-	sprintf(bitmapfile,"%dbitmap",pieces_length);
+	sprintf(bitmapfile,"%d_bitmap",pieces_length);
 	fd = open(bitmapfile,O_RDWR|O_CREAT|O_TRUNC,0666);
 	if(fd < 0)  return -1;
 	
@@ -171,7 +186,7 @@ int is_interested(Bitmap *dst,Bitmap *src)
 	j  = dst->valid_length % 8;
 	c1 = dst->bitfield[dst->bitfield_length-1];
 	c2 = src->bitfield[src->bitfield_length-1];
-	for(i = 0; i < j; i++) {
+	for(i = 0; i < j; i++) { //比较最后一个字节 
 		if( (c1&const_char[i])>0 && (c2&const_char[i])==0 )
 			return 1;
 	}
@@ -200,25 +215,25 @@ int is_interested(Bitmap *dst,Bitmap *src)
 // 获取当前已下载到的总的piece数
 int get_download_piece_num()
 {
-	unsigned char const_char[8] = { 0x80,0x40,0x20,0x10,0x08,0x04,0x02,0x01};
-	int           i, j;
+    unsigned char const_char[8] = { 0x80,0x40,0x20,0x10,0x08,0x04,0x02,0x01};
+    int           i, j;
 	
-	if(bitmap==NULL || bitmap->bitfield==NULL)  return 0;
+    if(bitmap==NULL || bitmap->bitfield==NULL)  return 0;
 	
-	download_piece_num =0;
+    download_piece_num =0;
 
-	for(i = 0; i < bitmap->bitfield_length-1; i++) {
-		for(j = 0; j < 8; j++) {
-			if( ((bitmap->bitfield)[i] & const_char[j]) != 0) 
-				download_piece_num++;
-		}
-	}
+    for(i = 0; i < bitmap->bitfield_length-1; i++) {
+        for(j = 0; j < 8; j++) {
+            if( ((bitmap->bitfield)[i] & const_char[j]) != 0) 
+                download_piece_num++;
+        }
+    }
 
-	unsigned char c = (bitmap->bitfield)[i]; // c存放位图最后一个字节
-	j = bitmap->valid_length % 8;            // j是位图最后一个字节的有效位数
-	for(i = 0; i < j; i++) {
-		if( (c & const_char[i]) !=0 ) download_piece_num++;
-	}
-		
+    unsigned char c = (bitmap->bitfield)[i]; // c存放位图最后一个字节
+    j = bitmap->valid_length % 8;            // j是位图最后一个字节的有效位数
+    for(i = 0; i < j; i++) {
+        if( (c & const_char[i]) !=0 ) download_piece_num++;
+    }
+        
 	return download_piece_num;
 }

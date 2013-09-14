@@ -1,11 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-
-#if __APPLE__
-#include <sys/malloc.h>
-#else 
-#include <malloc.h>
-#endif
+#include <stdlib.h>
 
 #include "peer.h"
 #include "message.h"
@@ -121,7 +116,7 @@ int del_peer_node(Peer *peer)
 	while(p != NULL) {
 		if( p == peer ) {
 			if(p == peer_head)  peer_head = p->next;
-			else  q->next = p->next;
+			else  q->next = p->next; //好像从来都不会到这里来的样子
 			free_peer_node(p);  // 可能存在问题
 			return 0;
 		} else {
