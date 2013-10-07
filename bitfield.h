@@ -16,7 +16,7 @@ int  all_set(Bitmap *bitmap);                 // 全部设置为1
 void release_memory_in_bitfield();            // 释放bitfield.c中动态分配的内存
 int  print_bitfield(Bitmap *bitmap);          // 打印位图值,用于调试
 
-int  restore_bitmap(); // 将位图存储到文件中 
+int  restore_bitmap(); // 将位图存储到文件中
                        // 在下次下载时,先读取该文件获取已经下载的进度
 int  is_interested(Bitmap *dst,Bitmap *src);  // 拥有位图src的peer是否对拥有
                                               // dst位图的peer感兴趣

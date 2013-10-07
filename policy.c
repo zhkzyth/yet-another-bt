@@ -31,7 +31,7 @@ void init_unchoke_peers()
 	int i;
 
 	for(i = 0; i < UNCHOKE_COUNT; i++) {
-		*(unchoke_peers.unchkpeer + i) = NULL;		
+		*(unchoke_peers.unchkpeer + i) = NULL;
 	}
 
 	unchoke_peers.count = 0;
@@ -87,8 +87,11 @@ int select_unchoke_peer()
 			if(p == unchoke_peers.unchkpeer[i])  break;
 			p = p->next;
 		}
+    //???
 		if(p == NULL)  { unchoke_peers.unchkpeer[i] = NULL; j++; }
-	}
+
+
+  //???
 	if(j != 0) {
 		unchoke_peers.count = unchoke_peers.count - j;
 		for(i = 0, j = 0; i < len; i++) {
@@ -121,11 +124,13 @@ int select_unchoke_peer()
 			for(i = 0; i < len; i++) {
 				if(p == force_choke[i]) break;
 			}
+            //不在force_choke里面
 			if(i == len) {
 				if( index < UNCHOKE_COUNT ) {
-					now_fast[index] = p; 
-					index++; 
+					now_fast[index] = p;
+					index++;
 				} else {
+                    //选出最慢的peer，拿出来跟新进的peer进行匹对
 					j = get_last_index(now_fast,UNCHOKE_COUNT);
 					if(p->down_rate >= now_fast[j]->down_rate) now_fast[j] = p;
 				}
@@ -141,6 +146,7 @@ int select_unchoke_peer()
 	}
 
 	// 假设unchoke_peers.unchkpeer中所有peer都是choke的
+    //
 	for(i = 0; i < unchoke_peers.count; i++) {
 		Peer*  q = (unchoke_peers.unchkpeer)[i];
 		choke_socket[i] = q->socket;
@@ -194,24 +200,25 @@ int *rand_num = NULL;
 int get_rand_numbers(int length)
 {
 	int i, index, piece_count, *temp_num;
-	
+
 	if(length == 0)  return -1;
 	piece_count = length;
-	
+
 	rand_num = (int *)malloc(piece_count * sizeof(int));
 	if(rand_num == NULL)    return -1;
-	
+
 	temp_num = (int *)malloc(piece_count * sizeof(int));
 	if(temp_num == NULL)    return -1;
 	for(i = 0; i < piece_count; i++)  temp_num[i] = i;
-	
+
 	srand(time(NULL));
+    //random ??
 	for(i = 0; i < piece_count; i++) {
         index = (int)( (float)(piece_count-i) * rand() / (RAND_MAX+1.0) );
 		rand_num[i] = temp_num[index];
         temp_num[index] = temp_num[piece_count-1-i];
     }
-	
+
 	if(temp_num != NULL)  free(temp_num);
 	return 0;
 }
@@ -220,7 +227,7 @@ int get_rand_numbers(int length)
 int select_optunchoke_peer()
 {
 	int   count = 0, index, i = 0, j, ret;
-	Peer  *p = peer_head; 
+	Peer  *p = peer_head;
 
 	// 获取peer队列中peer的总数
 	while(p != NULL) {
@@ -236,6 +243,7 @@ int select_optunchoke_peer()
 		printf("%s:%d get rand numbers error\n",__FILE__,__LINE__);
 		return -1;
 	}
+
 	while(i < count) {
 		// 随机选择一个数,该数在0～count-1之间
 		index = rand_num[i];
@@ -249,7 +257,9 @@ int select_optunchoke_peer()
 
 		if( is_in_unchoke_peers(p) != 1 && is_seed(p) != 1 && p->state == DATA &&
 			p != unchoke_peers.optunchkpeer && is_interested(bitmap,&(p->bitmap)) ) {
-		
+
+            //停掉之前的optchocker
+            //确认optchocker存在peer_head里面，然后停掉它
 			if( (unchoke_peers.optunchkpeer) != NULL ) {
 				Peer  *temp = peer_head;
 				while( temp != NULL ) {
@@ -319,7 +329,7 @@ int compute_total_rate()
 
 	total_peers     = 0;
 	total_down      = 0;
-	total_up        = 0;  
+	total_up        = 0;
 	total_down_rate = 0.0f;
 	total_up_rate   = 0.0f;
 
@@ -341,17 +351,17 @@ int is_seed(Peer *node)
 	int            i;
 	unsigned char  c = (unsigned char)0xFF, last_byte;
 	unsigned char  cnst[8] = { 255, 254, 252, 248, 240, 224, 192, 128 };
-	
+
 	if(node->bitmap.bitfield == NULL)  return 0;
-	
+
 	for(i = 0; i < node->bitmap.bitfield_length-1; i++) {
 		if( (node->bitmap.bitfield)[i] != c ) return 0;
 	}
-		
+
 	// 获取位图的最后一个字节
 	last_byte = node->bitmap.bitfield[i];
 	// 获取最后一个字节的无效位数
-	i = 8 * node->bitmap.bitfield_length - node->bitmap.valid_length; 
+	i = 8 * node->bitmap.bitfield_length - node->bitmap.valid_length;
 	// 判断最后一个是否位种子的最后一个字节
 	if(last_byte >= cnst[i]) return 1;
 	else return 0;
@@ -379,7 +389,7 @@ int create_req_slice_msg(Peer *node)
 		if(p->index == last_piece_index) {
 			last_begin = (last_piece_count - 1) * 16 * 1024;
 		}
-		
+
 		// 当前piece还有未请求的slice,则构造请求消息
 		if(p->begin < last_begin) {
 			index = p->index;
@@ -394,9 +404,9 @@ int create_req_slice_msg(Peer *node)
 				}
 
 				create_request_msg(index,begin,length,node);
-				
+
 				q = (Request_piece *)malloc(sizeof(Request_piece));
-				if(q == NULL) { 
+				if(q == NULL) {
 					printf("%s:%d error\n",__FILE__,__LINE__);
 					return -1;
 				}
@@ -410,7 +420,7 @@ int create_req_slice_msg(Peer *node)
 				begin += 16*1024;
 				count++;
 			}
-			
+
 			return 0;  // 构造完毕,就返回
 		}
 	}
@@ -461,7 +471,7 @@ int create_req_slice_msg(Peer *node)
 		for(i = 0; i < pieces_length/20; i++) {
 			if( get_bit_value(bitmap,i) == 0 )  { index = i; break; }
 		}
-		
+
 		if(i == pieces_length/20) {
 			printf("Can not find an index to IP:%s\n",node->ip);
 			return -1;
@@ -477,7 +487,7 @@ int create_req_slice_msg(Peer *node)
 	while(count < 4) {
 		// 如果是构造最后一个piece的请求消息
 		if(index == last_piece_index) {
-			if(count+1 > last_piece_count) 
+			if(count+1 > last_piece_count)
 				break;
 			if(begin == (last_piece_count - 1) * 16 * 1024)
 				length = last_slice_len;
@@ -516,14 +526,14 @@ int create_req_slice_msg_from_btcache(Peer *node)
 	int            slice_count = piece_length / (16*1024);
 	int            count = 0, num, valid_count;
 	int            index = -1, length = 16*1024;
-	
+
 	while(b != NULL) {
 		if(count%slice_count == 0) {
 			num           = slice_count;
 			b_piece_first = b;
 			valid_count   = 0;
 			index         = -1;
-			
+
 			// 遍历btcache中一个piece的所有slice
 			while(num>0 && b!=NULL) {
 				if(b->in_use==1 && b->read_write==1 && b->is_writed==0)
@@ -533,7 +543,7 @@ int create_req_slice_msg_from_btcache(Peer *node)
 				count++;
 				b = b->next;
 			}
-			
+
 			// 找到一个未下载完piece
 			if(valid_count>0 && valid_count<slice_count) {
 				// 检查该piece是否存在于某个peer的请求队列中
@@ -559,10 +569,10 @@ int create_req_slice_msg_from_btcache(Peer *node)
 					while(num<slice_count && request_count>0) {
 						if(b_piece_first->in_use == 0) {
 							create_request_msg(index,num*length,length,node);
-							
+
 							Request_piece *q;
 							q = (Request_piece *)malloc(sizeof(Request_piece));
-							if(q == NULL) { 
+							if(q == NULL) {
 								printf("%s:%d error\n",__FILE__,__LINE__);
 								return -1;
 							}
@@ -589,6 +599,6 @@ int create_req_slice_msg_from_btcache(Peer *node)
 			}
 		}
 	}
-	
+
 	return -1;
 }

@@ -28,22 +28,16 @@ void show_shared_vars()
 // 如此一来,就可以实现断点续传,即上次下载的内容不至于丢失
 int create_bitfield()
 {
-
-    printf("0\n");
     bitmap = (Bitmap *)malloc(sizeof(Bitmap));
     if(bitmap == NULL) { 
         printf("allocate memory for bitmap fiailed\n"); 
         return -1;
     }
 
-    printf("1\n");
 	/*// pieces_length除以20即为总的piece数*/
     bitmap->valid_length = pieces_length / 20;
     bitmap->bitfield_length = pieces_length / 20 / 8;
     if( (pieces_length/20) % 8 != 0 )  bitmap->bitfield_length++;
-
-    printf("2\n");
-    show_shared_vars();
 
     bitmap->bitfield = (unsigned char *)malloc(bitmap->bitfield_length);
     if(bitmap->bitfield == NULL)  { 
@@ -52,12 +46,8 @@ int create_bitfield()
         return -1;
     }
 
-    printf("3\n");
-    //FIXME hack?
-    printf("creating bitmapfile\n");
     char bitmapfile[128];
     sprintf(bitmapfile,"%d_bitmap",pieces_length); //sprintf is fuck!!!!!
-    printf("%s\n",bitmapfile);
 	
     int  i;
     FILE *fp = fopen(bitmapfile,"rb");

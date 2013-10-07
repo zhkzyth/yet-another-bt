@@ -4,15 +4,8 @@
 #include <string.h>
 #include <time.h>
 
-#if defined(__APPLE__)
-# define COMMON_DIGEST_FOR_OPENSSL
-# include <CommonCrypto/CommonDigest.h>
-# define SHA1 CC_SHA1
-#else
-# include <openssl/sha.h>
-#endif
-
 #include "parse_metafile.h"
+#include "bt_hash.h"
 
 unsigned char  *metafile_content = NULL; // 保存种子文件的内容
 long  filesize;                 // 种子文件的长度
@@ -410,17 +403,17 @@ int get_info_hash()
         }
     if(i == filesize)  return -1;
 
-
-    SHA_CTX context;
-    SHA1_Init(&context);
-
-    printf("in hash info :%d\n",multi_file);
-    SHA1_Update(&context,&metafile_content[begin], end-begin+1);
+    bt_hash_t *hash = bt_hash_new();
+    bt_hash_update(hash,&metafile_content[begin],end-begin+1);
+    bt_hash_data(hash);
     
-    printf("in hash info :%d\n",multi_file);
-    SHA1_Final(info_hash, &context);
+    //TODO change to OO 
+    for(i = 0; i < 20; i++)  
+    {
+        info_hash[i] = hash->hash[i];
+    }
 
-    printf("in hash info :%d\n",multi_file);
+    bt_hash_destroy(&hash);
 
 #ifdef DEBUG
     printf("info_hash:");
@@ -433,15 +426,15 @@ int get_info_hash()
 
 #endif
 
-	return 0;
+    return 0;
 }
 
 int get_peer_id()
 {
 
-	// 设置产生随机数的种子
+    // 设置产生随机数的种子
     srand(time(NULL));
-	// 生成随机数,并把其中12位赋给peer_id,peer_id前8位固定为-TT1000-
+    // 生成随机数,并把其中12位赋给peer_id,peer_id前8位固定为-TT1000-
     sprintf((char *)peer_id,"-TT1000-%12d",rand());
 
 #ifdef DEBUG
@@ -451,74 +444,74 @@ int get_peer_id()
     printf("\n");
 #endif
 
-	return 0;
+    return 0;
 }
 
 void release_memory_in_parse_metafile()
 {
-	Announce_list *p;
-	Files         *q;
-	
-	if(metafile_content != NULL)  free(metafile_content);
-	if(file_name != NULL)         free(file_name);
-	if(pieces != NULL)            free(pieces);
-	
-	while(announce_list_head != NULL) {
-		p = announce_list_head;
-		announce_list_head = announce_list_head->next;
-		free(p);
-	}
+    Announce_list *p;
+    Files         *q;
 
-	while(files_head != NULL) {
-		q = files_head;
-		files_head = files_head->next;
-		free(q);
-	}
+    if(metafile_content != NULL)  free(metafile_content);
+    if(file_name != NULL)         free(file_name);
+    if(pieces != NULL)            free(pieces);
+
+    while(announce_list_head != NULL) {
+        p = announce_list_head;
+        announce_list_head = announce_list_head->next;
+        free(p);
+    }
+
+    while(files_head != NULL) {
+        q = files_head;
+        files_head = files_head->next;
+        free(q);
+    }
 }
 
 int parse_metafile(char *metafile)
 {
-	int ret;
+    int ret;
 
-	// 读取种子文件
-	ret = read_metafile(metafile);
-	if(ret < 0) { printf("%s:%d wrong",__FILE__,__LINE__); return -1; }
-	
-	// 从种子文件中获取tracker服务器的地址
-	ret = read_announce_list();
-	if(ret < 0) { printf("%s:%d wrong",__FILE__,__LINE__); return -1; }
+    // 读取种子文件
+    ret = read_metafile(metafile);
+    if(ret < 0) { printf("%s:%d wrong",__FILE__,__LINE__); return -1; }
 
-	// 判断是否为多文件
-	ret = is_multi_files();
-	if(ret < 0) { printf("%s:%d wrong",__FILE__,__LINE__); return -1; }
-	
-	// 获取每个piece的长度,一般为256KB
-	ret = get_piece_length();
-	if(ret < 0) { printf("%s:%d wrong",__FILE__,__LINE__); return -1; }
-	
-	// 读取各个piece的哈希值
-	ret = get_pieces();
-	if(ret < 0) { printf("%s:%d wrong",__FILE__,__LINE__); return -1; }
-	
-	// 获取要下载的文件名，对于多文件的种子，获取的是目录名
-	ret = get_file_name();
-	if(ret < 0) { printf("%s:%d wrong",__FILE__,__LINE__); return -1; }
+    // 从种子文件中获取tracker服务器的地址
+    ret = read_announce_list();
+    if(ret < 0) { printf("%s:%d wrong",__FILE__,__LINE__); return -1; }
 
-	// 对于多文件的种子，获取各个待下载的文件路径和文件长度
-	ret = get_files_length_path();
-	if(ret < 0) { printf("%s:%d wrong",__FILE__,__LINE__); return -1; }
-	
-	// 获取待下载的文件的总长度
-	ret = get_file_length();
-	if(ret < 0) { printf("%s:%d wrong",__FILE__,__LINE__); return -1; }
+    // 判断是否为多文件
+    ret = is_multi_files();
+    if(ret < 0) { printf("%s:%d wrong",__FILE__,__LINE__); return -1; }
 
-	// 获得info_hash，生成peer_id
+    // 获取每个piece的长度,一般为256KB
+    ret = get_piece_length();
+    if(ret < 0) { printf("%s:%d wrong",__FILE__,__LINE__); return -1; }
+
+    // 读取各个piece的哈希值
+    ret = get_pieces();
+    if(ret < 0) { printf("%s:%d wrong",__FILE__,__LINE__); return -1; }
+
+    // 获取要下载的文件名，对于多文件的种子，获取的是目录名
+    ret = get_file_name();
+    if(ret < 0) { printf("%s:%d wrong",__FILE__,__LINE__); return -1; }
+
+    // 对于多文件的种子，获取各个待下载的文件路径和文件长度
+    ret = get_files_length_path();
+    if(ret < 0) { printf("%s:%d wrong",__FILE__,__LINE__); return -1; }
+
+    // 获取待下载的文件的总长度
+    ret = get_file_length();
+    if(ret < 0) { printf("%s:%d wrong",__FILE__,__LINE__); return -1; }
+
+    // 获得info_hash，生成peer_id
     ret = get_info_hash();
-	if(ret < 0) { printf("%s:%d wrong",__FILE__,__LINE__); return -1; }
-    
+    if(ret < 0) { printf("%s:%d wrong",__FILE__,__LINE__); return -1; }
+
     printf("in parse_metafile end multi_file:%d\n",multi_file);
     ret = get_peer_id();
-	if(ret < 0) { printf("%s:%d wrong",__FILE__,__LINE__); return -1; }
+    if(ret < 0) { printf("%s:%d wrong",__FILE__,__LINE__); return -1; }
 
     return 0;
 }

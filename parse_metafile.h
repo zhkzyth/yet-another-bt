@@ -28,8 +28,6 @@ extern char      *file_name; // 对于单文件,存放文件名;对于多文件,存放目录名
 extern long long file_length;    // 存放待下载文件的总长度
 extern Files     *files_head; // 只对多文件种子有效,存放各个文件的路径和长度 //和原生的冲突了？
 
-extern int zhkzyth;
-
 extern unsigned char info_hash[20];    // 保存info_hash的值,连接tracker和peer时使用
 extern unsigned char peer_id[21];      // 保存peer_id的值,连接peer时使用
 
