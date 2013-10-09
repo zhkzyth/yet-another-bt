@@ -6,5 +6,8 @@ ttorrent: main.o parse_metafile.o tracker.o bitfield.o message.o peer.o data.o p
 
 .PHONY: clean
 clean:
-	#cat main.c
+#cat main.c
 	rm -rf *.o ttorrent
+
+check-syntax:
+	gcc -o nul -S ${CHK_SOURCES}
