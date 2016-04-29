@@ -25,7 +25,7 @@ extern int     last_piece_count;
 extern int     last_slice_len;
 extern int     download_piece_num;
 
-// ³õÊ¼»¯È«¾Ö±äÁ¿unchoke_peers
+// åˆå§‹åŒ–å…¨å±€å˜é‡unchoke_peers
 void init_unchoke_peers()
 {
 	int i;
@@ -38,7 +38,7 @@ void init_unchoke_peers()
 	unchoke_peers.optunchkpeer = NULL;
 }
 
-// ÅĞ¶ÏÒ»¸öpeerÊÇ·ñÒÑ¾­´æÔÚÓÚunchoke_peers
+// åˆ¤æ–­ä¸€ä¸ªpeeræ˜¯å¦å·²ç»å­˜åœ¨äºunchoke_peers
 int is_in_unchoke_peers(Peer *node)
 {
 	int i;
@@ -50,7 +50,7 @@ int is_in_unchoke_peers(Peer *node)
 	return 0;
 }
 
-// ´Óunchoke_peersÖĞ»ñÈ¡ÏÂÔØËÙ¶È×îÂıµÄpeerµÄË÷Òı
+// ä»unchoke_peersä¸­è·å–ä¸‹è½½é€Ÿåº¦æœ€æ…¢çš„peerçš„ç´¢å¼•
 int get_last_index(Peer **array,int len)
 {
 	int i, j = -1;
@@ -64,7 +64,7 @@ int get_last_index(Peer **array,int len)
 	return j;
 }
 
-// ÕÒ³öµ±Ç°ÏÂÔØËÙ¶È×î¿ìµÄ4¸öpeer,½«Æäunchoke
+// æ‰¾å‡ºå½“å‰ä¸‹è½½é€Ÿåº¦æœ€å¿«çš„4ä¸ªpeer,å°†å…¶unchoke
 int select_unchoke_peer()
 {
 	Peer*  p;
@@ -80,18 +80,18 @@ int select_unchoke_peer()
 		choke_socket[i]   = -1;
 	}
 
-	// ½«ÄÇĞ©ÔÚ¹ıÈ¥10ÃëÒÑ¶Ï¿ªÁ¬½Ó¶øÓÖ´¦ÓÚunchoke¶ÓÁĞÖĞµÄpeerÇå³ı³öunchoke¶ÓÁĞ
+	// å°†é‚£äº›åœ¨è¿‡å»10ç§’å·²æ–­å¼€è¿æ¥è€Œåˆå¤„äºunchokeé˜Ÿåˆ—ä¸­çš„peeræ¸…é™¤å‡ºunchokeé˜Ÿåˆ—
 	for(i = 0, j = 0; i < unchoke_peers.count; i++) {
 		p = peer_head;
 		while(p != NULL) {
 			if(p == unchoke_peers.unchkpeer[i])  break;
 			p = p->next;
 		}
-    //???
+  
 		if(p == NULL)  { unchoke_peers.unchkpeer[i] = NULL; j++; }
-
-
-  //???
+  //ç¼ºå°‘ç¬¦å·
+       }
+ 
 	if(j != 0) {
 		unchoke_peers.count = unchoke_peers.count - j;
 		for(i = 0, j = 0; i < len; i++) {
@@ -106,8 +106,8 @@ int select_unchoke_peer()
 		}
 	}
 
-	// ½«ÄÇĞ©ÔÚ¹ıÈ¥10ÃëÉÏ´«ËÙ¶È³¬¹ı20KB/S¶øÏÂÔØËÙ¶È¹ıĞ¡µÄpeerÇ¿ĞĞ×èÈû
-	// ×¢Òâ£ºup_rateºÍdown_rateµÄµ¥Î»ÊÇB/S¶ø²»ÊÇKB/S
+	// å°†é‚£äº›åœ¨è¿‡å»10ç§’ä¸Šä¼ é€Ÿåº¦è¶…è¿‡20KB/Sè€Œä¸‹è½½é€Ÿåº¦è¿‡å°çš„peerå¼ºè¡Œé˜»å¡
+	// æ³¨æ„ï¼šup_rateå’Œdown_rateçš„å•ä½æ˜¯B/Sè€Œä¸æ˜¯KB/S
 	for(i = 0, j = -1; i < unchoke_peers.count; i++) {
 		if( (unchoke_peers.unchkpeer)[i]->up_rate > 50*1024 &&
 			(unchoke_peers.unchkpeer)[i]->down_rate < 0.1*1024 ) {
@@ -116,21 +116,21 @@ int select_unchoke_peer()
 		}
 	}
 
-	// ´Óµ±Ç°ËùÓĞPeerÖĞÑ¡³öÏÂÔØËÙ¶È×î¿ìµÄËÄ¸öpeer
+	// ä»å½“å‰æ‰€æœ‰Peerä¸­é€‰å‡ºä¸‹è½½é€Ÿåº¦æœ€å¿«çš„å››ä¸ªpeer
 	p = peer_head;
 	while(p != NULL) {
 		if(p->state==DATA && is_interested(bitmap,&(p->bitmap)) && is_seed(p)!=1) {
-			// p²»Ó¦¸ÃÔÚforce_chokeÊı×éÖĞ
+			// pä¸åº”è¯¥åœ¨force_chokeæ•°ç»„ä¸­
 			for(i = 0; i < len; i++) {
 				if(p == force_choke[i]) break;
 			}
-            //²»ÔÚforce_chokeÀïÃæ
+            //ä¸åœ¨force_chokeé‡Œé¢
 			if(i == len) {
 				if( index < UNCHOKE_COUNT ) {
 					now_fast[index] = p;
 					index++;
 				} else {
-                    //Ñ¡³ö×îÂıµÄpeer£¬ÄÃ³öÀ´¸úĞÂ½øµÄpeer½øĞĞÆ¥¶Ô
+                    //é€‰å‡ºæœ€æ…¢çš„peerï¼Œæ‹¿å‡ºæ¥è·Ÿæ–°è¿›çš„peerè¿›è¡ŒåŒ¹å¯¹
 					j = get_last_index(now_fast,UNCHOKE_COUNT);
 					if(p->down_rate >= now_fast[j]->down_rate) now_fast[j] = p;
 				}
@@ -139,21 +139,21 @@ int select_unchoke_peer()
 		p = p->next;
 	}
 
-	// ¼ÙÉènow_fastÖĞËùÓĞµÄpeer¶¼ÊÇÒªunchokeµÄ
+	// å‡è®¾now_fastä¸­æ‰€æœ‰çš„peeréƒ½æ˜¯è¦unchokeçš„
 	for(i = 0; i < index; i++) {
 		Peer*  q = now_fast[i];
 		unchoke_socket[i] = q->socket;
 	}
 
-	// ¼ÙÉèunchoke_peers.unchkpeerÖĞËùÓĞpeer¶¼ÊÇchokeµÄ
+	// å‡è®¾unchoke_peers.unchkpeerä¸­æ‰€æœ‰peeréƒ½æ˜¯chokeçš„
     //
 	for(i = 0; i < unchoke_peers.count; i++) {
 		Peer*  q = (unchoke_peers.unchkpeer)[i];
 		choke_socket[i] = q->socket;
 	}
 
-	// Èç¹ûnow_fastÄ³¸öÔªËØÒÑ¾­´æÔÚÓÚunchoke_peers.unchkpeer
-	// ÔòÃ»ÓĞ±ØÒª½øĞĞchoke»òunckoke
+	// å¦‚æœnow_fastæŸä¸ªå…ƒç´ å·²ç»å­˜åœ¨äºunchoke_peers.unchkpeer
+	// åˆ™æ²¡æœ‰å¿…è¦è¿›è¡Œchokeæˆ–unckoke
 	for(i = 0; i < index; i++) {
 		if( is_in_unchoke_peers(now_fast[i]) == 1) {
 			for(j = 0; j < len; j++) {
@@ -164,13 +164,13 @@ int select_unchoke_peer()
 		}
 	}
 
-	// ¸üĞÂµ±Ç°unchokeµÄpeer
+	// æ›´æ–°å½“å‰unchokeçš„peer
 	for(i = 0; i < index; i++) {
 		(unchoke_peers.unchkpeer)[i] = now_fast[i];
 	}
 	unchoke_peers.count = index;
 
-	// ×´Ì¬±ä»¯ºó,Òª¶ÔpeerµÄ×´Ì¬ÖµÖØĞÂ¸³Öµ,²¢ÇÒ´´½¨choke¡¢unchokeÏûÏ¢
+	// çŠ¶æ€å˜åŒ–å,è¦å¯¹peerçš„çŠ¶æ€å€¼é‡æ–°èµ‹å€¼,å¹¶ä¸”åˆ›å»ºchokeã€unchokeæ¶ˆæ¯
 	p = peer_head;
 	while(p != NULL) {
 		for(i = 0; i < len; i++) {
@@ -193,9 +193,9 @@ int select_unchoke_peer()
 	return 0;
 }
 
-// ¼ÙÉèÒªÏÂÔØµÄÎÄ¼ş¹²ÓĞ100¸öpiece
-// ÒÔÏÂº¯ÊıµÄ¹¦ÄÜÊÇ½«0µ½99Õâ100¸öÊıµÄË³ĞòÒÔËæ»úµÄ·½Ê½´òÂÒ
-// ´Ó¶øµÃµ½Ò»¸öËæ»úµÄÊı×é,¸ÃÊı×éÒÔËæ»úµÄ·½Ê½´æ´¢0¡«99,¹©Æ¬¶ÏÑ¡ÔñËã·¨Ê¹ÓÃ
+// å‡è®¾è¦ä¸‹è½½çš„æ–‡ä»¶å…±æœ‰100ä¸ªpiece
+// ä»¥ä¸‹å‡½æ•°çš„åŠŸèƒ½æ˜¯å°†0åˆ°99è¿™100ä¸ªæ•°çš„é¡ºåºä»¥éšæœºçš„æ–¹å¼æ‰“ä¹±
+// ä»è€Œå¾—åˆ°ä¸€ä¸ªéšæœºçš„æ•°ç»„,è¯¥æ•°ç»„ä»¥éšæœºçš„æ–¹å¼å­˜å‚¨0ï½99,ä¾›ç‰‡æ–­é€‰æ‹©ç®—æ³•ä½¿ç”¨
 int *rand_num = NULL;
 int get_rand_numbers(int length)
 {
@@ -223,19 +223,19 @@ int get_rand_numbers(int length)
 	return 0;
 }
 
-// ´Ópeer¶ÓÁĞÖĞÑ¡ÔñÒ»¸öÓÅ»¯·Ç×èÈûpeer
+// ä»peeré˜Ÿåˆ—ä¸­é€‰æ‹©ä¸€ä¸ªä¼˜åŒ–éé˜»å¡peer
 int select_optunchoke_peer()
 {
 	int   count = 0, index, i = 0, j, ret;
 	Peer  *p = peer_head;
 
-	// »ñÈ¡peer¶ÓÁĞÖĞpeerµÄ×ÜÊı
+	// è·å–peeré˜Ÿåˆ—ä¸­peerçš„æ€»æ•°
 	while(p != NULL) {
 		count++;
 		p =  p->next;
 	}
 
-	// Èç¹ûpeer×ÜÊıÌ«ÉÙ(Ğ¡ÓÚµÈÓÚ4),ÔòÃ»ÓĞ±ØÒªÑ¡ÔñÓÅ»¯·Ç×èÈûpeer
+	// å¦‚æœpeeræ€»æ•°å¤ªå°‘(å°äºç­‰äº4),åˆ™æ²¡æœ‰å¿…è¦é€‰æ‹©ä¼˜åŒ–éé˜»å¡peer
 	if(count <= UNCHOKE_COUNT)  return 0;
 
 	ret = get_rand_numbers(count);
@@ -245,7 +245,7 @@ int select_optunchoke_peer()
 	}
 
 	while(i < count) {
-		// Ëæ»úÑ¡ÔñÒ»¸öÊı,¸ÃÊıÔÚ0¡«count-1Ö®¼ä
+		// éšæœºé€‰æ‹©ä¸€ä¸ªæ•°,è¯¥æ•°åœ¨0ï½count-1ä¹‹é—´
 		index = rand_num[i];
 
 		p = peer_head;
@@ -258,8 +258,8 @@ int select_optunchoke_peer()
 		if( is_in_unchoke_peers(p) != 1 && is_seed(p) != 1 && p->state == DATA &&
 			p != unchoke_peers.optunchkpeer && is_interested(bitmap,&(p->bitmap)) ) {
 
-            //Í£µôÖ®Ç°µÄoptchocker
-            //È·ÈÏoptchocker´æÔÚpeer_headÀïÃæ£¬È»ºóÍ£µôËü
+            //åœæ‰ä¹‹å‰çš„optchocker
+            //ç¡®è®¤optchockerå­˜åœ¨peer_headé‡Œé¢ï¼Œç„¶ååœæ‰å®ƒ
 			if( (unchoke_peers.optunchkpeer) != NULL ) {
 				Peer  *temp = peer_head;
 				while( temp != NULL ) {
@@ -286,7 +286,7 @@ int select_optunchoke_peer()
 	return 0;
 }
 
-// ¼ÆËã×î½üÒ»¶ÎÊ±¼ä(Èç10Ãë)Ã¿¸öpeerµÄÉÏ´«ÏÂÔØËÙ¶È
+// è®¡ç®—æœ€è¿‘ä¸€æ®µæ—¶é—´(å¦‚10ç§’)æ¯ä¸ªpeerçš„ä¸Šä¼ ä¸‹è½½é€Ÿåº¦
 int compute_rate()
 {
 	Peer    *p       = peer_head;
@@ -322,7 +322,7 @@ int compute_rate()
 	return 0;
 }
 
-// ¼ÆËã×ÜµÄÏÂÔØºÍÉÏ´«ËÙ¶È
+// è®¡ç®—æ€»çš„ä¸‹è½½å’Œä¸Šä¼ é€Ÿåº¦
 int compute_total_rate()
 {
 	Peer *p = peer_head;
@@ -358,46 +358,46 @@ int is_seed(Peer *node)
 		if( (node->bitmap.bitfield)[i] != c ) return 0;
 	}
 
-	// »ñÈ¡Î»Í¼µÄ×îºóÒ»¸ö×Ö½Ú
+	// è·å–ä½å›¾çš„æœ€åä¸€ä¸ªå­—èŠ‚
 	last_byte = node->bitmap.bitfield[i];
-	// »ñÈ¡×îºóÒ»¸ö×Ö½ÚµÄÎŞĞ§Î»Êı
+	// è·å–æœ€åä¸€ä¸ªå­—èŠ‚çš„æ— æ•ˆä½æ•°
 	i = 8 * node->bitmap.bitfield_length - node->bitmap.valid_length;
-	// ÅĞ¶Ï×îºóÒ»¸öÊÇ·ñÎ»ÖÖ×ÓµÄ×îºóÒ»¸ö×Ö½Ú
+	// åˆ¤æ–­æœ€åä¸€ä¸ªæ˜¯å¦ä½ç§å­çš„æœ€åä¸€ä¸ªå­—èŠ‚
 	if(last_byte >= cnst[i]) return 1;
 	else return 0;
 }
 
-// Éú³ÉrequestÇëÇóÏûÏ¢,ÊµÏÖÁËÆ¬¶ÏÑ¡ÔñËã·¨,17ÎªÒ»¸örequestÏûÏ¢µÄ¹Ì¶¨³¤¶È
+// ç”Ÿæˆrequestè¯·æ±‚æ¶ˆæ¯,å®ç°äº†ç‰‡æ–­é€‰æ‹©ç®—æ³•,17ä¸ºä¸€ä¸ªrequestæ¶ˆæ¯çš„å›ºå®šé•¿åº¦
 int create_req_slice_msg(Peer *node)
 {
 	int index, begin, length = 16*1024;
 	int i, count = 0;
 
 	if(node == NULL)  return -1;
-	// Èç¹û±»peer×èÈû»ò¶Ôpeer²»¸ĞĞËÈ¤,¾ÍÃ»ÓĞ±ØÒªÉú³ÉrequestÏûÏ¢
+	// å¦‚æœè¢«peeré˜»å¡æˆ–å¯¹peerä¸æ„Ÿå…´è¶£,å°±æ²¡æœ‰å¿…è¦ç”Ÿæˆrequestæ¶ˆæ¯
 	if(node->peer_choking==1 || node->am_interested==0 )  return -1;
 
-	// Èç¹ûÖ®Ç°Ïò¸Ãpeer·¢ËÍ¹ıÇëÇó,Ôò¸ù¾İÖ®Ç°µÄÇëÇó¹¹ÔìĞÂÇëÇó
-	// ×ñÊØÒ»ÌõÔ­Ôò£ºÍ¬Ò»¸öpieceµÄËùÓĞsliceÓ¦¸Ã´ÓÍ¬Ò»¸öpeer´¦ÏÂÔØ
+	// å¦‚æœä¹‹å‰å‘è¯¥peerå‘é€è¿‡è¯·æ±‚,åˆ™æ ¹æ®ä¹‹å‰çš„è¯·æ±‚æ„é€ æ–°è¯·æ±‚
+	// éµå®ˆä¸€æ¡åŸåˆ™ï¼šåŒä¸€ä¸ªpieceçš„æ‰€æœ‰sliceåº”è¯¥ä»åŒä¸€ä¸ªpeerå¤„ä¸‹è½½
 	Request_piece *p = node->Request_piece_head, *q = NULL;
 	if(p != NULL) {
-		while(p->next != NULL)  { p = p->next; } // ¶¨Î»µ½×îºóÒ»¸ö½áµã´¦
+		while(p->next != NULL)  { p = p->next; } // å®šä½åˆ°æœ€åä¸€ä¸ªç»“ç‚¹å¤„
 
-		// Ò»¸öpieceµÄ×îºóÒ»¸ösliceµÄÆğÊ¼ÏÂ±ê
+		// ä¸€ä¸ªpieceçš„æœ€åä¸€ä¸ªsliceçš„èµ·å§‹ä¸‹æ ‡
 		int last_begin = piece_length - 16*1024;
-		// Èç¹ûÊÇ×îºóÒ»¸öpiece
+		// å¦‚æœæ˜¯æœ€åä¸€ä¸ªpiece
 		if(p->index == last_piece_index) {
 			last_begin = (last_piece_count - 1) * 16 * 1024;
 		}
 
-		// µ±Ç°piece»¹ÓĞÎ´ÇëÇóµÄslice,Ôò¹¹ÔìÇëÇóÏûÏ¢
+		// å½“å‰pieceè¿˜æœ‰æœªè¯·æ±‚çš„slice,åˆ™æ„é€ è¯·æ±‚æ¶ˆæ¯
 		if(p->begin < last_begin) {
 			index = p->index;
 			begin = p->begin + 16*1024;
 			count = 0;
 
 			while(begin!=piece_length && count<1) {
-				// Èç¹ûÊÇ×îºóÒ»¸öpieceµÄ×îºóÒ»¸öslice
+				// å¦‚æœæ˜¯æœ€åä¸€ä¸ªpieceçš„æœ€åä¸€ä¸ªslice
 				if(p->index == last_piece_index) {
 					if( begin == (last_piece_count - 1) * 16 * 1024 )
 						length = last_slice_len;
@@ -421,34 +421,34 @@ int create_req_slice_msg(Peer *node)
 				count++;
 			}
 
-			return 0;  // ¹¹ÔìÍê±Ï,¾Í·µ»Ø
+			return 0;  // æ„é€ å®Œæ¯•,å°±è¿”å›
 		}
 	}
 
-	// È»ºóÈ¥btcache_headÖĞÑ°ÕÒÕâÑùµÄpiece:ËüÃ»ÓĞÏÂÔØÍê,µ«Ëü²»ÔÚÈÎºÎpeerµÄ
-	// requestÏûÏ¢¶ÓÁĞÖĞ,Ó¦¸ÃÓÅÏÈÏÂÔØÕâÑùµÄpiece,³öÏÖÕâÑùµÄpieceµÄÔ­ÒòÊÇ:
-	// ´ÓÒ»¸öpeer´¦ÏÂÔØÒ»¸öpiece,»¹Ã»ÏÂÔØÍê,ÄÇ¸öpeer¾Í½«ÎÒÃÇchokeÁË»òÏÂÏßÁË
+	// ç„¶åå»btcache_headä¸­å¯»æ‰¾è¿™æ ·çš„piece:å®ƒæ²¡æœ‰ä¸‹è½½å®Œ,ä½†å®ƒä¸åœ¨ä»»ä½•peerçš„
+	// requestæ¶ˆæ¯é˜Ÿåˆ—ä¸­,åº”è¯¥ä¼˜å…ˆä¸‹è½½è¿™æ ·çš„piece,å‡ºç°è¿™æ ·çš„pieceçš„åŸå› æ˜¯:
+	// ä»ä¸€ä¸ªpeerå¤„ä¸‹è½½ä¸€ä¸ªpiece,è¿˜æ²¡ä¸‹è½½å®Œ,é‚£ä¸ªpeerå°±å°†æˆ‘ä»¬chokeäº†æˆ–ä¸‹çº¿äº†
 
-	// µ«ÊÇ²âÊÔ½á¹û±íÃ÷, ÒÔÕâÖÖ·½Ê½ÕâÖÖ·½Ê½´´½¨rquestÇëÇóÖ´ĞĞĞ§ÂÊ²¢²»¸ß
-	// Èç¹ûÖ±½Ó¶ªÆúÎ´ÏÂÔØÍê³ÉµÄpiece,ÔòÃ»ÓĞ±ØÒª½øĞĞÕâÖÖÉú³ÉÇëÇóµÄ·½Ê½
+	// ä½†æ˜¯æµ‹è¯•ç»“æœè¡¨æ˜, ä»¥è¿™ç§æ–¹å¼è¿™ç§æ–¹å¼åˆ›å»ºrquestè¯·æ±‚æ‰§è¡Œæ•ˆç‡å¹¶ä¸é«˜
+	// å¦‚æœç›´æ¥ä¸¢å¼ƒæœªä¸‹è½½å®Œæˆçš„piece,åˆ™æ²¡æœ‰å¿…è¦è¿›è¡Œè¿™ç§ç”Ÿæˆè¯·æ±‚çš„æ–¹å¼
 	// int ret = create_req_slice_msg_from_btcache(node);
 	// if(ret == 0) return 0;
 
-	// Éú³ÉËæ»úÊı
+	// ç”Ÿæˆéšæœºæ•°
 	if(get_rand_numbers(pieces_length/20) == -1) {
 		printf("%s:%d error\n",__FILE__,__LINE__);
 		return -1;
 	}
-	// Ëæ»úÑ¡ÔñÒ»¸öpieceµÄÏÂ±ê,¸ÃÏÂ±êËù´ú±íµÄpieceÓ¦¸ÃÃ»ÓĞÏòÈÎºÎpeerÇëÇó¹ı
+	// éšæœºé€‰æ‹©ä¸€ä¸ªpieceçš„ä¸‹æ ‡,è¯¥ä¸‹æ ‡æ‰€ä»£è¡¨çš„pieceåº”è¯¥æ²¡æœ‰å‘ä»»ä½•peerè¯·æ±‚è¿‡
 	for(i = 0; i < pieces_length/20; i++) {
 		index = rand_num[i];
 
-		// ÅĞ¶Ï¶ÔÓÚÒÔindexÎªÏÂ±êµÄpiece,peerÊÇ·ñÓµÓĞ
+		// åˆ¤æ–­å¯¹äºä»¥indexä¸ºä¸‹æ ‡çš„piece,peeræ˜¯å¦æ‹¥æœ‰
 		if( get_bit_value(&(node->bitmap),index) != 1)  continue;
-		// ÅĞ¶Ï¶ÔÓÚÒÔindexÎªÏÂ±êµÄpiece,ÊÇ·ñÒÑ¾­ÏÂÔØ
+		// åˆ¤æ–­å¯¹äºä»¥indexä¸ºä¸‹æ ‡çš„piece,æ˜¯å¦å·²ç»ä¸‹è½½
 		if( get_bit_value(bitmap,index) == 1) continue;
 
-		// ÅĞ¶Ï¶ÔÓÚÒÔindexÎªÏÂ±êµÄpiece,ÊÇ·ñÒÑ¾­ÇëÇó¹ıÁË
+		// åˆ¤æ–­å¯¹äºä»¥indexä¸ºä¸‹æ ‡çš„piece,æ˜¯å¦å·²ç»è¯·æ±‚è¿‡äº†
 		Peer          *peer_ptr = peer_head;
 		Request_piece *reqt_ptr;
 		int           find = 0;
@@ -464,7 +464,7 @@ int create_req_slice_msg(Peer *node)
 		}
 		if(find == 1) continue;
 
-		break; // ³ÌĞòÈôÖ´ĞĞµ½´Ë´¦,ËµÃ÷ÒÑ¾­ÕÒµ½Ò»¸ö¸´ºÏÒªÇóµÄindex
+		break; // ç¨‹åºè‹¥æ‰§è¡Œåˆ°æ­¤å¤„,è¯´æ˜å·²ç»æ‰¾åˆ°ä¸€ä¸ªå¤åˆè¦æ±‚çš„index
 	}
 	if(i == pieces_length/20) {
 		if(end_mode == 0)  end_mode = 1;
@@ -478,14 +478,14 @@ int create_req_slice_msg(Peer *node)
 		}
 	}
 
-	// ¹¹ÔìpieceÇëÇóÏûÏ¢
+	// æ„é€ pieceè¯·æ±‚æ¶ˆæ¯
 	begin = 0;
 	count = 0;
 	p = node->Request_piece_head;
 	if(p != NULL)
 		while(p->next != NULL)  p = p->next;
 	while(count < 4) {
-		// Èç¹ûÊÇ¹¹Ôì×îºóÒ»¸öpieceµÄÇëÇóÏûÏ¢
+		// å¦‚æœæ˜¯æ„é€ æœ€åä¸€ä¸ªpieceçš„è¯·æ±‚æ¶ˆæ¯
 		if(index == last_piece_index) {
 			if(count+1 > last_piece_count)
 				break;
@@ -513,13 +513,13 @@ int create_req_slice_msg(Peer *node)
 	return 0;
 }
 
-// ÒÔÏÂÕâ¸öº¯ÊıÊµ¼Ê²¢Î´µ÷ÓÃ,ÈôÒªÊ¹ÓÃĞèÏÈÔÚÍ·ÎÄ¼şÖĞÉùÃ÷
+// ä»¥ä¸‹è¿™ä¸ªå‡½æ•°å®é™…å¹¶æœªè°ƒç”¨,è‹¥è¦ä½¿ç”¨éœ€å…ˆåœ¨å¤´æ–‡ä»¶ä¸­å£°æ˜
 int create_req_slice_msg_from_btcache(Peer *node)
 {
-	// Ö¸ÕëbÓÃÓÚ±éÀúbtcache»º³åÇø
-	// Ö¸Õëb_piece_firstÖ¸ÏòÃ¿¸öpieceµÚÒ»¸öslice´¦
-	// slice_countÖ¸Ã÷Ò»¸öpieceº¬ÓĞ¶àÉÙ¸öslice
-	// valid_countÖ¸Ã÷Ò»¸öpieceÖĞÒÑÏÂÔØµÄsliceÊı
+	// æŒ‡é’ˆbç”¨äºéå†btcacheç¼“å†²åŒº
+	// æŒ‡é’ˆb_piece_firstæŒ‡å‘æ¯ä¸ªpieceç¬¬ä¸€ä¸ªsliceå¤„
+	// slice_countæŒ‡æ˜ä¸€ä¸ªpieceå«æœ‰å¤šå°‘ä¸ªslice
+	// valid_countæŒ‡æ˜ä¸€ä¸ªpieceä¸­å·²ä¸‹è½½çš„sliceæ•°
 	Btcache        *b = btcache_head, *b_piece_first;
 	Peer           *p;
 	Request_piece  *r;
@@ -534,7 +534,7 @@ int create_req_slice_msg_from_btcache(Peer *node)
 			valid_count   = 0;
 			index         = -1;
 
-			// ±éÀúbtcacheÖĞÒ»¸öpieceµÄËùÓĞslice
+			// éå†btcacheä¸­ä¸€ä¸ªpieceçš„æ‰€æœ‰slice
 			while(num>0 && b!=NULL) {
 				if(b->in_use==1 && b->read_write==1 && b->is_writed==0)
 					valid_count++;
@@ -544,9 +544,9 @@ int create_req_slice_msg_from_btcache(Peer *node)
 				b = b->next;
 			}
 
-			// ÕÒµ½Ò»¸öÎ´ÏÂÔØÍêpiece
+			// æ‰¾åˆ°ä¸€ä¸ªæœªä¸‹è½½å®Œpiece
 			if(valid_count>0 && valid_count<slice_count) {
-				// ¼ì²é¸ÃpieceÊÇ·ñ´æÔÚÓÚÄ³¸öpeerµÄÇëÇó¶ÓÁĞÖĞ
+				// æ£€æŸ¥è¯¥pieceæ˜¯å¦å­˜åœ¨äºæŸä¸ªpeerçš„è¯·æ±‚é˜Ÿåˆ—ä¸­
 				p = peer_head;
 				while(p != NULL) {
 					r = p->Request_piece_head;
@@ -557,11 +557,11 @@ int create_req_slice_msg_from_btcache(Peer *node)
 					if(r != NULL) break;
 					p = p->next;
 				}
-				// Èç¹û¸ÃpieceÃ»ÓĞ´æÔÚÓÚÈÎºÎpeerµÄÇëÇó¶ÓÁĞÖĞ,ÄÇÃ´¾ÍÕÒµ½ÁËĞèÒªµÄpiece
+				// å¦‚æœè¯¥pieceæ²¡æœ‰å­˜åœ¨äºä»»ä½•peerçš„è¯·æ±‚é˜Ÿåˆ—ä¸­,é‚£ä¹ˆå°±æ‰¾åˆ°äº†éœ€è¦çš„piece
 				if(p==NULL && get_bit_value(&(node->bitmap),index)==1) {
 					int request_count = 5;
 					num = 0;
-					// ½«r¶¨Î»µ½peer×îºóÒ»¸öÇëÇóÏûÏ¢´¦
+					// å°†rå®šä½åˆ°peeræœ€åä¸€ä¸ªè¯·æ±‚æ¶ˆæ¯å¤„
 					r = node->Request_piece_head;
 					if(r != NULL) {
 						while(r->next != NULL) r = r->next;
